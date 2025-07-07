@@ -1,0 +1,29 @@
+[project]
+name = "drug-prioritizer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.10.*"
+dependencies = [
+    "catboost>=1.2.8",
+    "dgl",
+    "molfeat[dgl]>=0.11.0",
+    "numpy<2",
+    "pandas==2.0.0",
+    "pytdc>=0.4.1",
+    "rdkit>=2025.3.3",
+    "scikit-learn>=1.7.0",
+    "sqlalchemy>=2.0.41",
+    "torch==2.3.0",
+    "torchdata==0.9.0",
+    "tqdm>=4.67.1",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.uv.sources]
+dgl = [
+    { url = "https://data.dgl.ai/wheels/dgl-2.0.0-cp310-cp310-macosx_11_0_arm64.whl", marker = "sys_platform == 'darwin'" },
+    { url = "https://data.dgl.ai/wheels/dgl-2.0.0-cp310-cp310-manylinux1_x86_64.whl", marker = "sys_platform == 'linux'" },
+]
