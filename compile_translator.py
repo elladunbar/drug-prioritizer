@@ -33,7 +33,7 @@ class TranslatorData:
 
         self.data = pd.concat(dfs, ignore_index=True)
 
-    def filter_equal(self, column: str | Sequence[str], value: Any, *, in_place: bool = False) -> pd.DataFrame:
+    def filter_equal(self, column: str | Sequence[str], value: Any, *, in_place: bool = False):
         if isinstance(column, str):
             column = (column,)
 
@@ -49,7 +49,23 @@ class TranslatorData:
             self.data = df
         return df
 
-    def get_drug_list(self) -> pd.DataFrame:
+    def _aggregate(self, df: pd.DataFrame):
+        agg_funcs = {}
+        grouped_df = df.groupby("result_id")
+
+        for col in df.columns:
+            if col == "result_id":
+                continue
+
+            unqique_vals_per_group = grouped_df[col].nunique()
+            if (unqique_vals_per_group <= 1).all():
+                agg_funcs[col] = lambda x: x.iloc[0]
+            else:
+                agg_funcs[col] = lambda x: set(x)
+
+        return grouped_df.agg(agg_funcs)
+
+    def get_drug_list(self):
         df = self.filter_equal(
             ("result_subjectNode_cat", "result_objectNode_cat"),
             self._drug_categories,
@@ -63,7 +79,7 @@ class TranslatorData:
             )
 
         # combine repeat drugs
-        df = df.groupby("result_id").agg(lambda x: set(x)).reset_index()
+        df = self._aggregate(df).reset_index()
 
         # only valid drugs
         df = df[~df["result_id"].str.startswith(self._invalid_id_types)]
@@ -73,11 +89,14 @@ class TranslatorData:
         df["id_type"] = df["id_type"].fillna("InChIKey")
 
         # chop off id type
-        needs_id_removal = df["result_id"].str.contains(":", regex=False)
-        df["result_id"][needs_id_removal] = df["result_id"][needs_id_removal].str.split(":").str[1]
+        df["result_id"] = df["result_id"].str.replace(r".*:(.*)$", r"\1", regex=True)
 
         # add current date and time
         df["date_time"] = datetime.datetime.now()
+
+        # get relevant columns
+        cols = ["result_name", "result_id", "id_type", "search term", "id_type", "date_time"]
+        df = df[cols]
 
         return df
 
@@ -86,5 +105,7 @@ if __name__ == "__main__":
     translator_folder = "data/translator/"
     translator_results = TranslatorData(translator_folder)
     drug_list = translator_results.get_drug_list()
-    with open("data/translator_input.json", "w") as f:
-        drug_list.to_json(f, orient="records")
+    print(drug_list)
+
+    # db = database.Database()
+    # db.import_dataframe()
