@@ -28,7 +28,7 @@ class TranslatorData:
             with open(folder + file, "r") as f:
                 df = pd.read_csv(f, low_memory=False)
 
-            df["search term"] = file.split("_")[0].lower()  # downloader names = query-name_other-stuff
+            df["search_term"] = file.split("_")[0].lower()  # downloader names = query-name_other-stuff
             dfs.append(df)
 
         self.data = pd.concat(dfs, ignore_index=True)
@@ -94,18 +94,24 @@ class TranslatorData:
         # add current date and time
         df["date_time"] = datetime.datetime.now()
 
+        # rename some
+        df["drug_name"] = df["result_name"]
+        df["external_id"] = df["result_id"]
+        df["external_id_source"] = df["id_type"]
+
         # get relevant columns
-        cols = ["result_name", "result_id", "id_type", "search term", "id_type", "date_time"]
+        cols = ["drug_name", "external_id", "external_id_source", "search_term", "date_time"]
         df = df[cols]
 
         return df
 
 
 if __name__ == "__main__":
+    import database
+
     translator_folder = "data/translator/"
     translator_results = TranslatorData(translator_folder)
     drug_list = translator_results.get_drug_list()
-    print(drug_list)
 
-    # db = database.Database()
-    # db.import_dataframe()
+    db = database.Database()
+    db.save_dataframe(drug_list, "translator_drugs")

@@ -35,7 +35,7 @@ class Database:
         else:
             return Column(name, String)
 
-    def import_dataframe(self, df: pd.DataFrame, table_name: str) -> None:
+    def save_dataframe(self, df: pd.DataFrame, table_name: str) -> None:
         # make index a column
         df = df.reset_index()
 
@@ -69,6 +69,7 @@ class Database:
             child_table.create(self.engine, checkfirst=True)
 
             with self.engine.connect() as conn:
-                for index, row in df.iterrows():
+                for _, row in df.iterrows():
                     for value in row[col]:
-                        conn.execute(child_table.insert(), {"main_index": index, "value": str(value)})
+                        conn.execute(child_table.insert(), {"main_index": row["index"], "value": str(value)})
+                conn.commit()
