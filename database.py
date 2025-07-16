@@ -1,7 +1,19 @@
 import numpy as np
 import pandas as pd
 import sqlalchemy
-from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, MetaData, String, Table, create_engine, event
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Float,
+    ForeignKey,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    create_engine,
+    event,
+    inspect,
+)
 
 
 @event.listens_for(sqlalchemy.engine.Engine, "connect")
@@ -73,3 +85,27 @@ class Database:
                     for value in row[col]:
                         conn.execute(child_table.insert(), {"main_index": row["index"], "value": str(value)})
                 conn.commit()
+
+    def load_dataframe(self, table_name: str) -> pd.DataFrame:
+        # load main table
+        main_df = pd.read_sql_table(table_name, self.engine)
+
+        # add child tables if they exist
+        all_table_names = inspect(self.engine).get_table_names()
+        child_table_names = [t for t in all_table_names if t.startswith(table_name + "_")]
+        for child_table_name in child_table_names:
+            child_df = pd.read_sql_table(child_table_name, self.engine)
+            grouped = child_df.groupby("main_index")["value"].apply(list).to_dict()
+            col = child_table_name[len(table_name) + 1 :]
+            main_df[col] = main_df["index"].map(grouped)
+
+        # fix index
+        main_df.set_index("index", inplace=True)
+
+        return main_df
+
+
+if __name__ == "__main__":
+    db = Database()
+    df = db.load_dataframe("translator_drugs")
+    print(df)
