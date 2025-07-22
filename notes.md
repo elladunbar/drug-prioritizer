@@ -17,9 +17,13 @@
 
 Create SQL tables/schema from XML schema
 
+
 ```
 1 parse whole document at once
-2 walk tree of types
+2 for element in document
+    3 if no attribute "name"; continue
+    4 if type is in terminal types, add to mapping as-is
+    5 
 ```
 
 Create SQL from XML
