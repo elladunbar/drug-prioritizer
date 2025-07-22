@@ -1,48 +1,30 @@
-#!/usr/bin/env pypy3
+#!/usr/bin/env uv run --script --python pypy
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "xmlschema",
+# ]
+# ///
 
-import xml.etree.ElementTree as ET
-from collections import deque
+import xmlschema
 
-TERMINAL_TYPES = {
-    "{http://www.w3.org/2001/XMLSchema}anyURI": str,
-    "{http://www.w3.org/2001/XMLSchema}boolean": bool,
-    "{http://www.w3.org/2001/XMLSchema}date": str,
-    "{http://www.w3.org/2001/XMLSchema}float": float,
-    "{http://www.w3.org/2001/XMLSchema}integer": int,
-    "{http://www.w3.org/2001/XMLSchema}string": str,
-}
-TYPE_TAGS = ("element", "simpleType", "complexType")
+schema = xmlschema.XMLSchema("data/drugbank.xsd")
+root = schema.elements["drugbank"]
 
 
-class SchemaType:
-    def __init__(self, type_name: str):
-        self.name = type_name
-        self.singular = False
-        self.list_like = False
-        self.terminal = False
-
-        if "list-type" in self.name:
-            self.list_like = True
-        elif type_name in TERMINAL_TYPES:
-            self.singular = True
-            self.terminal = True
-
-
-schema_namespace = "{http://www.w3.org/2001/XMLSchema}"
-schema = ET.parse("data/drugbank.xsd")
-
-root_type_element = schema.find(f"./{schema_namespace}element[@name='drugbank']")
-type_mapping = {root_type_element.attrib["name"]: root_type_element.attrib["type"]}
-unfinished_types = deque([root_type_element.attrib["type"]])
-while unfinished_types:
-    current_type = unfinished_types.popleft()
-    element = schema.find(f".//*[@name='{current_type}']")
-    if element.tag == schema_namespace + "element":
-        type_mapping[current_type] = element.attrib["type"]
-    elif element.tag == schema_namespace + "simpleType":
-        restriction = element.find(f"./{schema_namespace}restriction")
-        type_mapping[current_type] = restriction.attrib["base"]
-    elif element.tag == schema_namespace + "complexType":
-        continue
+def walk_element(name, elem_type, depth=0):
+    indent = "  " * depth
+    if elem_type.is_complex():
+        print(f"{indent}{name} (complex)")
+        content = elem_type.content
+        if hasattr(content, "particles"):
+            for particle in content.iter_elements():
+                child_name = particle.name
+                if child_name:
+                    walk_element(child_name, particle.type, depth + 1)
     else:
-        continue
+        print(f"{indent}{name} (simple)")
+
+
+# Start recursive walk
+walk_element(root.name, root.type)

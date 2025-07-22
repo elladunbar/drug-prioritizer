@@ -17,6 +17,7 @@ dependencies = [
     "torch==2.3.0",
     "torchdata==0.9.0",
     "tqdm>=4.67.1",
+    "xmlschema>=4.1.0",
 ]
 
 [tool.ruff]
@@ -27,3 +28,6 @@ dgl = [
     { url = "https://data.dgl.ai/wheels/dgl-2.0.0-cp310-cp310-macosx_11_0_arm64.whl", marker = "sys_platform == 'darwin'" },
     { url = "https://data.dgl.ai/wheels/dgl-2.0.0-cp310-cp310-manylinux1_x86_64.whl", marker = "sys_platform == 'linux'" },
 ]
+
+[tool.pyright]
+reportOptionalMemberAccess = false
